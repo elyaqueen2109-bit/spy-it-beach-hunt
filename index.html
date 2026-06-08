@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
+    <title>Spy It • Beach Hunt</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #f9d56e, #f8b500, #ff6b6b, #4ecdc4);
+            background-size: 300% 300%;
+            animation: gradientShift 12s ease infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', 'Fredoka', system-ui, sans-serif;
+            padding: 20px;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .game-container {
+            max-width: 650px;
+            width: 100%;
+            background: #fff9e6;
+            border-radius: 42px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.3);
+            padding: 22px 22px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 3px solid #ffc857;
+            position: relative;
+        }
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e4a5f;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 #ffe082;
+        }
+        .scene {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 36px;
+            overflow: hidden;
+            cursor: none;
+            border: 4px solid #ffab40;
+            box-shadow: 0 8px 0 #d84315;
+            background: #000;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .scene img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            pointer-events: none;
+        }
+        .dark-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            pointer-events: none;
+            transition: opacity 1s ease;
+            z-index: 2;
+        }
+        .dark-overlay.hidden {
+            opacity: 0;
+        }
+        #magnifierCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: 36px;
+            z-index: 3;
+        }
+        .central-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 30px #000;
+            z-index: 15;
+            pointer-events: none;
+            text-align: center;
+            background: rgba(0,0,0,0.7);
+            padding: 25px 35px;
+            border-radius: 30px;
+            border: 3px solid #ffc857;
+        }
+        .countdown-timer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 9rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 40px #000, 0 0 20px #ffab40;
+            z-index: 16;
+            pointer-events: none;
+        }
+        .checklist {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px 0 8px;
+        }
+        .item-btn {
+            background: #fff3e0;
+            border: 3px solid #ffb74d;
+            border-radius: 40px;
+            padding: 12px 22px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #4e342e;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 0 #ff9800;
+            letter-spacing: 0.5px;
+        }
+        .item-btn.found {
+            background: #a5d6a7;
+            border-color: #43a047;
+            color: #1b5e20;
+            box-shadow: 0 3px 0 #2e7d32;
+            text-decoration: line-through 2px;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        .hint-btn {
+            background: #ffe082;
+            border: 3px solid #ffb300;
+            border-radius: 30px;
+            padding: 10px 24px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #4e342e;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: 0.2s;
+            box-shadow: 0 3px 0 #e65100;
+        }
+        .hint-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #bf360c;
+        }
+        .message {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2e7d32;
+            margin-top: 10px;
+            min-height: 2.5rem;
+            text-align: center;
+        }
+        /* Экран викторины */
+        .quiz-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,248,220,0.96);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 42px;
+            z-index: 20;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .quiz-screen.hidden {
+            display: none;
+        }
+        .quiz-card {
+            background: #ffffff;
+            border-radius: 35px;
+            padding: 35px 30px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.25);
+            width: 100%;
+            max-width: 520px;
+            text-align: center;
+            animation: popIn 0.3s ease;
+            border: 4px solid #ffc857;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .quiz-question {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #1e4a5f;
+            margin-bottom: 30px;
+        }
+        .quiz-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        .quiz-option {
+            background: #fff3e0;
+            border: 3px solid #ffb74d;
+            border-radius: 45px;
+            padding: 16px 28px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #4e342e;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 5px 0 #ff9800;
+            min-width: 130px;
+        }
+        .quiz-option.correct {
+            background: #a5d6a7;
+            border-color: #43a047;
+            color: #1b5e20;
+            box-shadow: 0 4px 0 #2e7d32;
+        }
+        .quiz-option.wrong {
+            background: #ef9a9a;
+            border-color: #e53935;
+            color: #b71c1c;
+            box-shadow: 0 4px 0 #c62828;
+        }
+        .quiz-result {
+            font-size: 1.8rem;
+            margin-top: 25px;
+            font-weight: 700;
+            min-height: 2.5rem;
+            color: #2e7d32;
+        }
+        @media (max-width: 500px) {
+            .item-btn {
+                padding: 8px 16px;
+                font-size: 1rem;
+            }
+            h2 {
+                font-size: 1.6rem;
+            }
+            .quiz-question {
+                font-size: 1.6rem;
+            }
+            .quiz-option {
+                font-size: 1.3rem;
+                padding: 12px 20px;
+            }
+            .central-message {
+                font-size: 2rem;
+                padding: 18px 22px;
+            }
+            .countdown-timer {
+                font-size: 7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h2>🔍 Summer Spy</h2>
+    <div class="scene" id="scene">
+        <img id="bgImage" src="beach-spy.png" alt="beach i spy">
+        <div class="dark-overlay" id="darkOverlay"></div>
+        <canvas id="magnifierCanvas"></canvas>
+        <div class="central-message" id="centralMessage" style="display:none;"></div>
+        <div class="countdown-timer" id="countdownTimer" style="display:none;"></div>
+    </div>
+
+    <div class="checklist" id="checklist"></div>
+
+    <button class="hint-btn" id="hintButton">💡 Hint</button>
+    <div class="message" id="messageBox"></div>
+
+    <!-- Экран викторины -->
+    <div class="quiz-screen hidden" id="quizScreen">
+        <div class="quiz-card">
+            <div class="quiz-question" id="quizQuestion"></div>
+            <div class="quiz-options" id="quizOptions"></div>
+            <div class="quiz-result" id="quizResult"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- ПРЕДМЕТЫ ----------
+        const ITEMS = [
+            { name: "crab 1",         cells: ["A4"],   emoji: "🦀", speech: "It's a crab" },
+            { name: "crab 2",         cells: ["D3"],   emoji: "🦀", speech: "It's a crab" },
+            { name: "crab 3",         cells: ["C2"],   emoji: "🦀", speech: "It's a crab" },
+            { name: "dolphin",        cells: ["E1"],   emoji: "🐬", speech: "It's a dolphin" },
+            { name: "green bucket",   cells: ["C5"],   emoji: "🪣", speech: "It's a green bucket" },
+            { name: "coconut 1",      cells: ["E4"],   emoji: "🥥", speech: "It's a coconut" },
+            { name: "coconut 2",      cells: ["A3"],   emoji: "🥥", speech: "It's a coconut" },
+            { name: "pink flip-flops",cells: ["D4"],   emoji: "🩴", speech: "They are pink flip-flops" },
+            { name: "seagull",        cells: ["B1"],   emoji: "🐦", speech: "It's a seagull" },
+            { name: "sandcastle",     cells: ["C3"],   emoji: "🏰", speech: "It's a sandcastle" }
+        ];
+
+        const TOTAL_ITEMS = ITEMS.length;
+        let foundState = new Array(TOTAL_ITEMS).fill(false);
+        let gameCompleted = false;
+
+        const scene = document.getElementById('scene');
+        const bgImage = document.getElementById('bgImage');
+        const canvas = document.getElementById('magnifierCanvas');
+        const ctx = canvas.getContext('2d');
+        const checklistDiv = document.getElementById('checklist');
+        const hintBtn = document.getElementById('hintButton');
+        const messageBox = document.getElementById('messageBox');
+        const darkOverlay = document.getElementById('darkOverlay');
+        const centralMessage = document.getElementById('centralMessage');
+        const countdownTimer = document.getElementById('countdownTimer');
+        const quizScreen = document.getElementById('quizScreen');
+        const quizQuestion = document.getElementById('quizQuestion');
+        const quizOptions = document.getElementById('quizOptions');
+        const quizResult = document.getElementById('quizResult');
+
+        const MAG_RADIUS = 90;
+        const MAG_ZOOM = 2.2;
+        let mouseX = -1000, mouseY = -1000;
+        let imageLoaded = false;
+
+        // ---------- ЗВУК НАХОДКИ ----------
+        let audioCtx = null;
+        function playFoundSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.exponentialRampToValueAtTime(440, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } catch (e) {}
+        }
+
+        function playTickSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } catch (e) {}
+        }
+
+        // ---------- ОЗВУЧКА ----------
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // ---------- Загрузка ----------
+        function initImage() {
+            if (bgImage.complete && bgImage.naturalWidth > 0) {
+                imageLoaded = true;
+                drawMagnifier();
+                return;
+            }
+            bgImage.addEventListener('load', () => {
+                imageLoaded = true;
+                drawMagnifier();
+                showMessage('🔎 Search in the dark…');
+            });
+            bgImage.addEventListener('error', () => {
+                showMessage('⚠️ Image "beach-spy.png" not found.');
+            });
+        }
+        initImage();
+
+        function drawMagnifier() {
+            if (!imageLoaded) return;
+            const w = scene.clientWidth;
+            const h = scene.clientHeight;
+            canvas.width = w;
+            canvas.height = h;
+            ctx.clearRect(0,0,w,h);
+            if (mouseX < -500) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, MAG_RADIUS, 0, 2*Math.PI);
+            ctx.clip();
+            const srcW = MAG_RADIUS * 2 / MAG_ZOOM;
+            const srcH = MAG_RADIUS * 2 / MAG_ZOOM;
+            const srcX = (mouseX / w) * bgImage.naturalWidth - srcW/2;
+            const srcY = (mouseY / h) * bgImage.naturalHeight - srcH/2;
+            ctx.drawImage(bgImage, srcX, srcY, srcW, srcH, mouseX-MAG_RADIUS, mouseY-MAG_RADIUS, MAG_RADIUS*2, MAG_RADIUS*2);
+            ctx.restore();
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, MAG_RADIUS, 0, 2*Math.PI);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+            ctx.strokeStyle = '#a0d6ff';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        }
+
+        function getScenePos(e) {
+            const rect = scene.getBoundingClientRect();
+            let cx = e.clientX, cy = e.clientY;
+            if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+            return { x: cx - rect.left, y: cy - rect.top };
+        }
+
+        function getCurrentCell() {
+            const w = scene.clientWidth, h = scene.clientHeight;
+            const col = Math.min(4, Math.floor((mouseX / w) * 5));
+            const row = Math.min(4, Math.floor((mouseY / h) * 5));
+            return { cell: String.fromCharCode(65+col)+(row+1) };
+        }
+
+        function isItemFound(item) {
+            return item.cells.includes(getCurrentCell().cell);
+        }
+
+        function checkAllFound() {
+            if (foundState.every(v => v) && !gameCompleted) {
+                gameCompleted = true;
+                darkOverlay.classList.add('hidden');
+                // Показать сообщение на 3 секунды
+                centralMessage.textContent = '🔍 Look carefully!\nRemember all the items.';
+                centralMessage.style.display = 'block';
+                showMessage('');
+                // Убрать сообщение через 3 сек, дать 15 секунд на просмотр (вместо 30)
+                setTimeout(() => {
+                    centralMessage.style.display = 'none';
+                    setTimeout(() => {
+                        startCountdown();
+                    }, 15000); // 15 секунд
+                }, 3000);
+            }
+        }
+
+        function startCountdown() {
+            let count = 5;
+            countdownTimer.textContent = count;
+            countdownTimer.style.display = 'block';
+            playTickSound();
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownTimer.textContent = count;
+                    playTickSound();
+                } else {
+                    clearInterval(interval);
+                    countdownTimer.textContent = 'GO!';
+                    playFoundSound();
+                    setTimeout(() => {
+                        countdownTimer.style.display = 'none';
+                        startQuiz();
+                    }, 800);
+                }
+            }, 1000);
+        }
+
+        // ---------- ВИКТОРИНА ----------
+        const questions = [
+            {
+                question: "How many crabs are there?",
+                options: ["one", "two", "three"],
+                correct: 2
+            },
+            {
+                question: "What color is the bucket?",
+                options: ["green", "blue", "yellow"],
+                correct: 0
+            },
+            {
+                question: "How many coconuts are there?",
+                options: ["one", "two", "three"],
+                correct: 1
+            },
+            {
+                question: "Where are the pink flip-flops?",
+                options: ["next to the dolphin", "next to the green flip-flops", "next to the sandcastle"],
+                correct: 1
+            },
+            {
+                question: "Is there a dolphin?",
+                options: ["yes", "no"],
+                correct: 0
+            },
+            {
+                question: "Is there a blue hat?",
+                options: ["yes", "no"],
+                correct: 1
+            }
+        ];
+        let currentQuestion = 0;
+        let correctAnswers = 0;
+
+        function startQuiz() {
+            currentQuestion = 0;
+            correctAnswers = 0;
+            quizScreen.classList.remove('hidden');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQuestion >= questions.length) {
+                endQuiz();
+                return;
+            }
+            const q = questions[currentQuestion];
+            quizQuestion.textContent = q.question;
+            quizOptions.innerHTML = '';
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option';
+                btn.textContent = opt;
+                btn.addEventListener('click', () => handleAnswer(idx, btn));
+                quizOptions.appendChild(btn);
+            });
+            quizResult.textContent = '';
+        }
+
+        function handleAnswer(chosenIdx, btn) {
+            const q = questions[currentQuestion];
+            const allButtons = quizOptions.querySelectorAll('.quiz-option');
+            allButtons.forEach(b => b.style.pointerEvents = 'none');
+            if (chosenIdx === q.correct) {
+                btn.classList.add('correct');
+                correctAnswers++;
+                quizResult.textContent = '✅ Correct!';
+            } else {
+                btn.classList.add('wrong');
+                allButtons[q.correct].classList.add('correct');
+                quizResult.textContent = '❌ The answer is: ' + q.options[q.correct];
+            }
+            currentQuestion++;
+            setTimeout(() => {
+                showQuestion();
+            }, 1800);
+        }
+
+        function endQuiz() {
+            quizQuestion.textContent = '🏁 Quiz finished!';
+            quizOptions.innerHTML = '';
+            quizResult.textContent = `You got ${correctAnswers} out of ${questions.length} right!`;
+            setTimeout(() => {
+                quizScreen.classList.add('hidden');
+            }, 5000);
+        }
+
+        // ---------- АВТОПОИСК ----------
+        function autoFindOnClick() {
+            if (!imageLoaded || gameCompleted) return;
+            let foundSomething = false;
+            for (let i = 0; i < ITEMS.length; i++) {
+                if (foundState[i]) continue;
+                if (isItemFound(ITEMS[i])) {
+                    foundState[i] = true;
+                    updateChecklist();
+                    showMessage('🎉 Great! ' + ITEMS[i].name + ' caught!');
+                    playFoundSound();
+                    speak(ITEMS[i].speech);
+                    foundSomething = true;
+                    checkAllFound();
+                    break;
+                }
+            }
+            if (!foundSomething) {
+                showMessage('🔍 Nothing here. Keep searching…');
+            }
+        }
+
+        function checkItem(index) {
+            if (foundState[index]) { showMessage('✅ Already found!'); return; }
+            if (isItemFound(ITEMS[index])) {
+                foundState[index] = true;
+                updateChecklist();
+                showMessage('🎉 Great! ' + ITEMS[index].name + ' caught!');
+                playFoundSound();
+                speak(ITEMS[index].speech);
+                checkAllFound();
+            } else {
+                showMessage('🔍 Not there…');
+            }
+        }
+
+        function giveHint() {
+            const hidden = ITEMS.map((item,idx)=>({item,idx})).filter(x => !foundState[x.idx]);
+            if (hidden.length===0) { showMessage('🌟 All caught!'); return; }
+            const r = hidden[Math.floor(Math.random()*hidden.length)];
+            showMessage(`💡 ${r.item.name} hides near ${r.item.cells[0]}`);
+        }
+
+        function showMessage(txt) { messageBox.textContent = txt; }
+
+        function buildChecklist() {
+            checklistDiv.innerHTML = '';
+            ITEMS.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'item-btn';
+                btn.innerHTML = `${item.emoji} ${item.name}`;
+                btn.addEventListener('click', (e) => { e.stopPropagation(); checkItem(idx); });
+                checklistDiv.appendChild(btn);
+            });
+        }
+
+        function updateChecklist() {
+            checklistDiv.querySelectorAll('.item-btn').forEach((btn, idx) => {
+                if (foundState[idx]) btn.classList.add('found');
+            });
+        }
+
+        scene.addEventListener('mousemove', (e) => { const p = getScenePos(e); mouseX = p.x; mouseY = p.y; drawMagnifier(); });
+        scene.addEventListener('mouseleave', () => { mouseX = -1000; mouseY = -1000; drawMagnifier(); });
+        scene.addEventListener('click', (e) => { const p = getScenePos(e); mouseX = p.x; mouseY = p.y; drawMagnifier(); autoFindOnClick(); });
+        scene.addEventListener('touchmove', (e) => { e.preventDefault(); const p = getScenePos(e); mouseX = p.x; mouseY = p.y; drawMagnifier(); }, {passive: false});
+        scene.addEventListener('touchend', (e) => { autoFindOnClick(); setTimeout(()=>{ mouseX=-1000; mouseY=-1000; drawMagnifier(); },300); });
+        hintBtn.addEventListener('click', giveHint);
+        window.addEventListener('resize', drawMagnifier);
+
+        buildChecklist();
+        drawMagnifier();
+        darkOverlay.classList.remove('hidden');
+    })();
+</script>
+</body>
+</html>
